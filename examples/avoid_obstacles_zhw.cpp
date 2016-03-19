@@ -1,7 +1,16 @@
 #include "Aria.h"
-
+/**
+   @功能：机器人避障及导航代码，基于超声波数据，目标是到达目标点，在过程中需要规避
+        障碍物。到达目标点之后传入新的目标点，继续追寻下一个目标点，直到
+        所有目标点都完成。该部分为主函数，负责上层调度，底层算法及实现看核心文件 /src/ArActionAvoidSide.cpp文件
+   @author：zhw
+   @email:zhw793984895@163.com
+   @time:2016-3-17
+   @version:v1.1
+ */
 int main(int argc, char **argv)
-{
+{ 
+  //一些Aria 定义的初始化步骤，按葫芦画瓢
   Aria::init();
   ArArgumentParser parser(&argc, argv);
   parser.loadDefaultArguments();
@@ -10,11 +19,10 @@ int main(int argc, char **argv)
   ArSonarDevice sonar;
   ArRobotConnector robotConnector(&parser, &robot);
 
-  // Connect to the robot, get some initial data from it such as type and name,
-  // and then load parameter files for this robot.
+  //连接机器人
   if(!robotConnector.connectRobot())
   {
-    ArLog::log(ArLog::Terse, "gotoActionExample: Could not connect to the robot.");
+    //ArLog::log(ArLog::Terse, "gotoGoal: Could not connect to the robot.");
     if(parser.checkHelpAndWarnUnparsed())
     {
         // -help not given
@@ -29,13 +37,12 @@ int main(int argc, char **argv)
     Aria::exit(1);
   }
 
-  ArLog::log(ArLog::Normal, "gotoActionExample: Connected to robot.");
-
+  //ArLog::log(ArLog::Normal, "gotoGoal: Connected to robot.");
+  
   robot.addRangeDevice(&sonar);
   robot.runAsync(true);
 
-  // Make a key handler, so that escape will shut down the program
-  // cleanly
+  // 定义一个快捷键，按键盘Esc小车停止
   ArKeyHandler keyHandler;
   Aria::setKeyHandler(&keyHandler);
   robot.attachKeyHandler(&keyHandler);
@@ -47,7 +54,7 @@ int main(int argc, char **argv)
   // Collision avoidance actions at higher priority
   ArActionStallRecover recover;
   ArActionBumpers bumpers;
-
+  //引入避障action,前方安全距离为1000mm,侧边安全距离为340mm
   ArActionAvoidSide avoidSide("Avoid side", ArPose(0, 0), 1000, 340, 1);
 
   robot.addAction(&recover, 100);
@@ -67,7 +74,7 @@ int main(int argc, char **argv)
   robot.enableMotors();
   robot.comInt(ArCommands::SOUNDTOG, 0);
 
-  //Going to  goals for %d seconds, then cancelling goal and exiting.
+  //设置一个时间，到了该时间程序就退出，120s 退出 
   const int duration = 120000; //msec
   
   bool first = true;
@@ -92,6 +99,7 @@ int main(int argc, char **argv)
       }
 
       // set our positions for the different goals
+      // 设置目标点
       if (goalNum == 1){
         avoidSide.setGoal(ArPose(3800, 0));
         printf("goalNum == 1\n\n");
